@@ -55,7 +55,7 @@ test_service() {
     fi
 
     echo "Invoking service at $SERVICE_URL with API_KEY..."
-    RESPONSE=$(curl -s -o response.json -w "%{http_code}" -H "x-apikey: $2" "${SERVICE_URL}/o/default/cleanings")
+    RESPONSE=$(curl -s -o response.json -w "%{http_code}" -H "x-apikey: $2" "${SERVICE_URL}/o/default/reservations")
     
     if [ "$RESPONSE" -eq 200 ]; then
         echo "Service response (formatted):"

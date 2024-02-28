@@ -1,0 +1,109 @@
+openapi: 3.0.0
+info:
+  title: Reservation and Cleaning Service API
+  version: "1.0"
+servers:
+  - url: https://api-q3ohuheywa-uc.a.run.app/o/default
+components:
+  securitySchemes:
+    ApiKeyAuth:    # arbitrary name for the security scheme
+      type: apiKey
+      in: header       
+      name: x-apikey  # name of the header, query parameter or cookie
+security:
+  - ApiKeyAuth: []
+paths:
+  /reservations:
+    get:
+      summary: Get a list of all reservations
+      responses:
+        '200':
+          description: A list of reservations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reservation'
+  /cleanings:
+    get:
+      summary: Get a list of all cleanings
+      responses:
+        '200':
+          description: A list of cleaning dates and details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cleanings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Cleaning'
+  /reservations/{id}:
+    put:
+      summary: Update a reservation by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reservation'
+      responses:
+        '200':
+          description: Reservation updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+components:
+  schemas:
+    Reservation:
+      type: object
+      properties:
+        "Service Fee":
+          type: number
+        "Cleaning Date":
+          type: string
+        Purpose:
+          type: string
+        Cleaner:
+          type: string
+        "Host Payout":
+          type: number
+        "Conf/Res #":
+          type: string
+        Received:
+          type: string
+        Rent:
+          type: number
+        Platform:
+          type: string
+        "Check-In":
+          type: string
+        House:
+          type: string
+        Guest:
+          type: string
+        "Cleaning Fee":
+          type: number
+        "Check-Out":
+          type: string
+        Outcome:
+          type: string
+    Cleaning:
+      type: object
+      properties:
+        "Cleaning Date":
+          type: string
+        "Conf/Res #":
+          type: string

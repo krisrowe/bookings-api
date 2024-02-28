@@ -53,8 +53,9 @@ async function fetchDataAndRespond(req, res) {
   try {
     const response = await invokeBackendService({ method: 'GET', url: apiUrl });
     const { records, fields } = response.data;
-    const data = records.map(record => mapRecordFields(record, fields));
-    res.json({ data });
+    const data = {  };
+    data[endpoint] = records.map(record => mapRecordFields(record, fields));
+    res.json(data);
   } catch (error) {
     console.error('Error fetching data:', error);
     res.status(500).send('Error fetching data');
