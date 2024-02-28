@@ -1,0 +1,18 @@
+{
+  "bookings": [
+    {
+      "conf": "HMXXXUTYAB",
+      "property": "Clement",
+      "checkIn": "2024-05-31",
+      "checkOut": "2024-06-02",
+      "cleaningDate": "2024-06-02"
+    },
+    {
+      "conf": "HMXXXWTZAB",
+      "property": "Clement",
+      "checkIn": "2024-06-02",
+      "checkOut": "2024-06-05",
+      "cleaningDate": "2024-06-05"
+    }
+  ]
+}
