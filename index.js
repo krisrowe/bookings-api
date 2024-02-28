@@ -1,75 +1,95 @@
-const functions = require('@google-cloud/functions-framework');
+const express = require('express');
 const axios = require('axios').default;
 const { GoogleAuth } = require('google-auth-library');
+const bodyParser = require('body-parser');
+const app = express();
+const port = process.env.PORT || 8080;
 
-// Helper function to get ID token for target audience
-async function getIdTokenForTargetAudience(targetAudience) {
+app.use(bodyParser.json());
+
+// Common function to invoke backend service with token
+async function invokeBackendService({ method, url, data }) {
+  console.log('Retrieving token');
   const auth = new GoogleAuth();
-  const client = await auth.getIdTokenClient(targetAudience);
-  const idToken = await client.idTokenProvider.fetchIdToken(targetAudience);
-  return idToken;
+  const client = await auth.getIdTokenClient(url);
+  const idToken = await client.idTokenProvider.fetchIdToken(url);
+  console.log('Token retrieved');
+
+  console.log('Invoking backend service');
+  const response = await axios({
+    method,
+    url,
+    headers: {
+      'Authorization': `Bearer ${idToken}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    data
+  });
+  console.log('Backend service response received');
+  return response;
 }
 
 // Simplified generic mapper for records based on fields specification
 function mapRecordFields(record, fields) {
   const mappedRecord = {};
   Object.keys(record).forEach(key => {
-    // Map the value directly with an optional check for a display name override
     mappedRecord[fields[key]?.display || key] = record[key];
   });
   return mappedRecord;
 }
 
-functions.http('helloHttp', async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname;
-
-  // Extract orgId from the path
-  const orgId = pathname.split('/')[2]; // Assuming path format is `/o/:orgId/cleanings`
-
-  // API Key verification
-  const apiKey = process.env.API_KEY;
-  const requestApiKey = req.headers['x-apikey'];
-  if (apiKey !== requestApiKey) {
-    res.status(400).send('Invalid API Key');
-    return;
+// Reusable function for fetching and responding with data
+async function fetchDataAndRespond(req, res) {
+  const { orgId } = req.params;
+  const endpoint = req.path.split('/').pop(); // 'cleanings' or 'reservations'
+  const serviceHost = process.env.BOOKINGS_SERVICE_HOST;
+  if (!serviceHost) {
+    return res.status(500).send('Configuration error: BOOKINGS_SERVICE_HOST is not defined.');
   }
+  const targetAudience = `http://${serviceHost}`;
+  const apiUrl = `${targetAudience}/o/${orgId}/${endpoint}`;
 
-  // Ensure BOOKINGS_SERVICE_HOST is defined
-  if (!process.env.BOOKINGS_SERVICE_HOST) {
-    console.error('BOOKINGS_SERVICE_HOST environment variable is not defined.');
-    res.status(500).send('Configuration error');
-    return;
+  try {
+    const response = await invokeBackendService({ method: 'GET', url: apiUrl });
+    const { records, fields } = response.data;
+    const data = records.map(record => mapRecordFields(record, fields));
+    res.json({ data });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).send('Error fetching data');
   }
+}
 
-  if (pathname.includes('/cleanings')) {
-    // Query the backend service for cleanings data
+app.get('/o/:orgId/cleanings', fetchDataAndRespond);
+app.get('/o/:orgId/reservations', fetchDataAndRespond);
+
+app.put('/o/:orgId/reservations', async (req, res) => {
+  console.log('Received PUT data:', req.body);
+  const { orgId } = req.params;
+  if (typeof req.body === 'object' && req.body['Door Access']) {
+    const serviceHost = process.env.BOOKINGS_SERVICE_HOST;
+    const targetAudience = `http://${serviceHost}`;
+    const apiUrl = `${targetAudience}/events`;
+    const postData = {
+      type: "update",
+      conf: req.body['Conf/Res #'],
+      doorAccess: new Date(req.body['Door Access']).toISOString().slice(0, 10)
+    };
+
     try {
-      const serviceHost = process.env.BOOKINGS_SERVICE_HOST;
-      const targetAudience = `https://${serviceHost}`;
-      const apiUrl = `${targetAudience}/o/${orgId}/cleanings`;
-
-      // Fetch ID token for the target audience
-      const idToken = await getIdTokenForTargetAudience(targetAudience);
-
-      const response = await axios.get(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      // Process and respond with the data
-      const { records, fields } = response.data;
-      const bookings = records.map(record => mapRecordFields(record, fields));
-
-      res.json({ bookings });
+      await invokeBackendService({ method: 'POST', url: apiUrl, data: postData });
+      res.send('Door access updated successfully');
     } catch (error) {
-      console.error('Error querying backend service:', error);
-      res.status(500).send('Error fetching booking data');
+      console.error('Error updating door access:', error);
+      res.status(500).send('Error updating door access');
     }
   } else {
-    // Default response for other paths
-    res.send(`Hello ${req.query.name || req.body.name || 'World'}!`);
+    res.status(400).send('Invalid request data');
   }
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
 });
