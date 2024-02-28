@@ -47,7 +47,7 @@ async function fetchDataAndRespond(req, res) {
   if (!serviceHost) {
     return res.status(500).send('Configuration error: BOOKINGS_SERVICE_HOST is not defined.');
   }
-  const targetAudience = `http://${serviceHost}`;
+  const targetAudience = `https://${serviceHost}`;
   const apiUrl = `${targetAudience}/o/${orgId}/${endpoint}`;
 
   try {
