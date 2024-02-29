@@ -83,7 +83,7 @@ app.put('/o/:orgId/reservations/:conf', async (req, res) => {
 
   if (convertedData.hasOwnProperty('doorAccess')) {
     const serviceHost = process.env.BOOKINGS_SERVICE_HOST;
-    const targetAudience = `http://${serviceHost}`;
+    const targetAudience = `https://${serviceHost}`;
     const apiUrl = `${targetAudience}/events`;
     
     const postData = {
