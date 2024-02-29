@@ -6,6 +6,24 @@ const moment = require('moment'); // Make sure to install moment
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Check if API_KEY is set, if not exit with status code 1
+if (!process.env.API_KEY) {
+  console.error('API_KEY environment variable is not set. Exiting...');
+  process.exit(1);
+}
+
+// Middleware to check for x-apikey header and validate it
+app.use((req, res, next) => {
+  const apiKeyHeader = req.headers['x-apikey'];
+  if (!apiKeyHeader) {
+    return res.status(401).send('API key is required.');
+  }
+  if (apiKeyHeader !== process.env.API_KEY) {
+    return res.status(401).send('Invalid API key.');
+  }
+  next();
+});
+
 app.use(bodyParser.json());
 
 async function invokeBackendService({ method, url, data }) {
@@ -51,7 +69,7 @@ async function fetchDataAndRespond(req, res) {
   try {
     const response = await invokeBackendService({ method: 'GET', url: apiUrl });
     const { records, fields } = response.data;
-    const data = {  };
+    const data = {};
     data[endpoint] = records.map(record => mapRecordFields(record, fields));
     res.json(data);
   } catch (error) {
