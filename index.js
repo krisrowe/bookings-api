@@ -65,16 +65,17 @@ async function fetchDataAndRespond(req, res) {
 app.get('/o/:orgId/cleanings', fetchDataAndRespond);
 app.get('/o/:orgId/reservations', fetchDataAndRespond);
 
-app.put('/o/:orgId/reservations', async (req, res) => {
+app.put('/o/:orgId/reservations/:conf', async (req, res) => {
   console.log('Received PUT data:', req.body);
-  const { orgId } = req.params;
+  const { orgId, conf } = req.params; // Capture 'conf' from URL
   if (typeof req.body === 'object' && req.body['Door Access']) {
     const serviceHost = process.env.BOOKINGS_SERVICE_HOST;
     const targetAudience = `http://${serviceHost}`;
     const apiUrl = `${targetAudience}/events`;
+    // Use 'conf' from URL params instead of body
     const postData = {
       type: "update",
-      conf: req.body['Conf/Res #'],
+      conf: conf, // Use conf from URL params
       doorAccess: new Date(req.body['Door Access']).toISOString().slice(0, 10)
     };
 
@@ -86,7 +87,8 @@ app.put('/o/:orgId/reservations', async (req, res) => {
       res.status(500).send('Error updating door access');
     }
   } else {
-    res.status(400).send('Invalid request data');
+    // More descriptive error message
+    res.status(400).send('Invalid request data: "Door Access" field is missing or incorrect.');
   }
 });
 
