@@ -2,12 +2,12 @@ const express = require('express');
 const axios = require('axios').default;
 const { GoogleAuth } = require('google-auth-library');
 const bodyParser = require('body-parser');
+const moment = require('moment'); // Make sure to install moment
 const app = express();
 const port = process.env.PORT || 8080;
 
 app.use(bodyParser.json());
 
-// Common function to invoke backend service with token
 async function invokeBackendService({ method, url, data }) {
   console.log('Retrieving token');
   const auth = new GoogleAuth();
@@ -30,7 +30,6 @@ async function invokeBackendService({ method, url, data }) {
   return response;
 }
 
-// Simplified generic mapper for records based on fields specification
 function mapRecordFields(record, fields) {
   const mappedRecord = {};
   Object.keys(record).forEach(key => {
@@ -39,7 +38,6 @@ function mapRecordFields(record, fields) {
   return mappedRecord;
 }
 
-// Reusable function for fetching and responding with data
 async function fetchDataAndRespond(req, res) {
   const { orgId } = req.params;
   const endpoint = req.path.split('/').pop(); // 'cleanings' or 'reservations'
@@ -62,21 +60,36 @@ async function fetchDataAndRespond(req, res) {
   }
 }
 
+// New convertInput function
+function convertInput(input) {
+  let converted = {};
+  if (input.hasOwnProperty('Door Access')) {
+    if (input['Door Access']) {
+      converted.doorAccess = moment(input['Door Access'], 'MM/DD/YYYY HH:mm:ss A').format('YYYY-MM-DD');
+    } else {
+      converted.doorAccess = '';
+    }
+  }
+  return converted;
+}
+
 app.get('/o/:orgId/cleanings', fetchDataAndRespond);
 app.get('/o/:orgId/reservations', fetchDataAndRespond);
 
 app.put('/o/:orgId/reservations/:conf', async (req, res) => {
   console.log('Received PUT data:', req.body);
-  const { orgId, conf } = req.params; // Capture 'conf' from URL
-  if (typeof req.body === 'object' && req.body['Door Access']) {
+  const { orgId, conf } = req.params;
+  const convertedData = convertInput(req.body);
+
+  if (convertedData.hasOwnProperty('doorAccess')) {
     const serviceHost = process.env.BOOKINGS_SERVICE_HOST;
     const targetAudience = `http://${serviceHost}`;
     const apiUrl = `${targetAudience}/events`;
-    // Use 'conf' from URL params instead of body
+    
     const postData = {
       type: "update",
-      conf: conf, // Use conf from URL params
-      doorAccess: new Date(req.body['Door Access']).toISOString().slice(0, 10)
+      conf: conf,
+      ...convertedData // Spread the converted data into postData
     };
 
     try {
@@ -87,12 +100,10 @@ app.put('/o/:orgId/reservations/:conf', async (req, res) => {
       res.status(500).send('Error updating door access');
     }
   } else {
-    // More descriptive error message
     res.status(400).send('Invalid request data: "Door Access" field is missing or incorrect.');
   }
 });
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
