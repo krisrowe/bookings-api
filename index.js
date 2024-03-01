@@ -26,6 +26,11 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 
+/**
+ * Helper function to invoke the backend bookings service
+ * @param {*} param0 
+ * @returns 
+ */
 async function invokeBackendService({ method, url, data }) {
   console.log('Retrieving token');
   const auth = new GoogleAuth();
