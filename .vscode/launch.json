@@ -11,8 +11,9 @@
                 "start",
             ],
             "env": {
-                "BOOKINGS_SERVICE_HOST": "bookings-q3ohuheywa-uc.a.run.app",
-                "GOOGLE_APPLICATION_CREDENTIALS": "secrets/service-account.json"
+                "BOOKINGS_SERVICE_HOST": "bookings-trvcdcqaxa-uc.a.run.app",
+                "GOOGLE_APPLICATION_CREDENTIALS": "secrets/service-account.json",
+                "API_KEY": "test"
             },
             "runtimeExecutable": "npm",
             "skipFiles": [
